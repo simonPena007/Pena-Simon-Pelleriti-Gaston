@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Conector de Base de Datos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f9; }
+        .container { max-width: 500px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input, button { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; }
+        button { background-color: #007BFF; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        button:hover { background-color: #0056b3; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Registro y Consulta en SQLite</h2>
+        
+        <!-- Formulario para Agregar -->
+        <form id="formUsuario">
+            <label for="nombre">Nombre de usuario:</label>
+            <input type="text" id="nombre" placeholder="Ej. Juan Pérez" required>
+            <button type="submit">Agregar a la Base de Datos</button>
+        </form>
+        <p id="mensaje" style="font-weight: bold;"></p>
+
+        <hr>
+
+        <!-- Sección para Extraer -->
+        <h3>Información Extraída (Base de Datos)</h3>
+        <button type="button" id="btnActualizar">Actualizar Lista</button>
+        <ul id="listaUsuarios"></ul>
+    </div>
+
+    <script>
+        const form = document.getElementById('formUsuario');
+        const mensaje = document.getElementById('mensaje');
+        const listaUsuarios = document.getElementById('listaUsuarios');
+        const btnActualizar = document.getElementById('btnActualizar');
+
+        // 1. Enviar datos usando fetch() (Método POST)
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value;
+
+            try {
+                const respuesta = await fetch('/api/agregar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre })
+                });
+                
+                const resultado = await respuesta.json();
+
+                if (respuesta.ok) {
+                    mensaje.style.color = 'green';
+                    mensaje.textContent = resultado.mensaje;
+                    form.reset();
+                    cargarDatos(); // Refrescar la tabla automáticamente
+                } else {
+                    mensaje.style.color = 'red';
+                    mensaje.textContent = resultado.error;
+                }
+            } catch (error) {
+                mensaje.style.color = 'red';
+                mensaje.textContent = 'Error de conexión con el servidor.';
+            }
+        });
+
+        // 2. Extraer datos usando fetch() (Método GET)
+        async function cargarDatos() {
+            try {
+                const respuesta = await fetch('/api/obtener');
+                const usuarios = await respuesta.json();
+
+                listaUsuarios.innerHTML = ''; // Limpiar la lista antes de volver a pintarla
+                
+                if (usuarios.length === 0) {
+                    listaUsuarios.innerHTML = '<li>No hay registros todavía.</li>';
+                    return;
+                }
+
+                usuarios.forEach(user => {
+                    const li = document.createElement('li');
+                    li.textContent = `ID: ${user.id} - Nombre: ${user.nombre}`;
+                    listaUsuarios.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error al extraer datos:', error);
+            }
+        }
+
+        // Cargar los datos automáticamente al abrir la página y al hacer clic en el botón
+        window.onload = cargarDatos;
+        btnActualizar.addEventListener('click', cargarDatos);
+    </script>
+</body>
+</html>
